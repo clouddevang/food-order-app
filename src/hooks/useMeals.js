@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getAuthToken } from "../firebase";
 
 const CACHE_KEY = "meals_cache";
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
@@ -20,8 +21,9 @@ const useMeals = () => {
         }
       }
 
+      const token = await getAuthToken();
       const response = await fetch(
-        `${import.meta.env.VITE_FIREBASE_URL}/meals.json`
+        `${import.meta.env.VITE_FIREBASE_URL}/meals.json?auth=${token}`
       );
       if (!response.ok) throw new Error("Could not fetch meals.");
 

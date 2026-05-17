@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getAuthToken } from "../firebase";
 
 const useSubmitOrder = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -9,8 +10,9 @@ const useSubmitOrder = () => {
     setIsSubmitting(true);
     setError(null);
     try {
+      const token = await getAuthToken();
       const response = await fetch(
-        `${import.meta.env.VITE_FIREBASE_URL}/orders.json`,
+        `${import.meta.env.VITE_FIREBASE_URL}/orders.json?auth=${token}`,
         {
           method: "POST",
           body: JSON.stringify({ user: userData, orderedItems: cartItems }),
