@@ -10,7 +10,7 @@ const useSubmitOrder = () => {
     setError(null);
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_FIREBASE_URL}/orders.json`,
+        `${import.meta.env.VITE_FIREBASE_URL}/orders.json`,
         {
           method: "POST",
           body: JSON.stringify({ user: userData, orderedItems: cartItems }),

@@ -21,7 +21,7 @@ const useMeals = () => {
       }
 
       const response = await fetch(
-        `${process.env.REACT_APP_FIREBASE_URL}/meals.json`
+        `${import.meta.env.VITE_FIREBASE_URL}/meals.json`
       );
       if (!response.ok) throw new Error("Could not fetch meals.");
 
