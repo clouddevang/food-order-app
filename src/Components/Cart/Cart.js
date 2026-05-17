@@ -3,47 +3,35 @@ import React, { useContext, useState } from "react";
 import Modal from "../UI/Modal";
 import CartItem from "./CartItem";
 import classes from "./Cart.module.css";
-import CartContext from "../../store/cart-context";
+import { CartStateContext, CartDispatchContext } from "../../store/cart-context";
 import Checkout from "./Checkout";
+import useSubmitOrder from "../../hooks/useSubmitOrder";
 
 const Cart = (props) => {
   const [isCheckout, setIsCheckout] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [didSubmit, setDidSubmit] = useState(false);
-  const cartCtx = useContext(CartContext);
-  const totalAmount = `$${cartCtx.totalAmount.toFixed(2)}`;
-  const hasItems = cartCtx.items.length > 0;
+  const [pendingOrder, setPendingOrder] = useState(null);
+  const cartState = useContext(CartStateContext);
+  const cartDispatch = useContext(CartDispatchContext);
+  const { submitOrder, isSubmitting, didSubmit, error } = useSubmitOrder();
 
-  const cartItemRemoveHandler = (id) => {
-    cartCtx.removeItem(id);
+  const totalAmount = `$${cartState.totalAmount.toFixed(2)}`;
+  const hasItems = cartState.items.length > 0;
+
+  const cartItemRemoveHandler = (id) => cartDispatch.removeItem(id);
+  const cartItemAddHandler = (item) => cartDispatch.addItem({ ...item, amount: 1 });
+
+  const submitOrderHandler = (userData) => {
+    setPendingOrder({ userData, cartItems: cartState.items });
+    submitOrder(userData, cartState.items, cartDispatch.clearCart);
   };
 
-  const cartItemAddHandler = (item) => {
-    cartCtx.addItem({ ...item, amount: 1 });
-  };
-  const orderHandler = () => {
-    setIsCheckout(true);
-  };
-  const submitOrderHandler = async (userData) => {
-    setIsSubmitting(true);
-    await fetch(
-      "https://food-order-app-83d2b-default-rtdb.asia-southeast1.firebasedatabase.app//orders.json",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          user: userData,
-          orderedItems: cartCtx.items,
-        }),
-      }
-    );
-    setIsSubmitting(false);
-    setDidSubmit(true);
-    cartCtx.clearCart();
+  const retryHandler = () => {
+    submitOrder(pendingOrder.userData, pendingOrder.cartItems, cartDispatch.clearCart);
   };
 
   const cartItems = (
     <ul className={classes["cart-items"]}>
-      {cartCtx.items.map((item) => (
+      {cartState.items.map((item) => (
         <CartItem
           key={item.id}
           name={item.name}
@@ -62,15 +50,17 @@ const Cart = (props) => {
         Close
       </button>
       {hasItems && (
-        <button className={classes.button} onClick={orderHandler}>
+        <button className={classes.button} onClick={() => setIsCheckout(true)}>
           Order
         </button>
       )}
     </div>
   );
+
   const cartModalContent = (
     <React.Fragment>
-      {cartItems}
+      {!hasItems && <p style={{ textAlign: "center" }}>Your cart is empty.</p>}
+      {hasItems && cartItems}
       <div className={classes.total}>
         <span>Total Amount</span>
         <span>{totalAmount}</span>
@@ -95,11 +85,26 @@ const Cart = (props) => {
     </React.Fragment>
   );
 
+  const errorModalContent = (
+    <React.Fragment>
+      <p>{error}</p>
+      <div className={classes.actions}>
+        <button className={classes["button--alt"]} onClick={props.onClose}>
+          Close
+        </button>
+        <button className={classes.button} onClick={retryHandler}>
+          Retry
+        </button>
+      </div>
+    </React.Fragment>
+  );
+
   return (
     <Modal onClose={props.onClose}>
-      {!isSubmitting && !didSubmit && cartModalContent}
+      {!isSubmitting && !didSubmit && !error && cartModalContent}
       {isSubmitting && isSubmittingModalContent}
       {!isSubmitting && didSubmit && didSubmitModalContent}
+      {!isSubmitting && error && errorModalContent}
     </Modal>
   );
 };
